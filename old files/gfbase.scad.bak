@@ -1,0 +1,135 @@
+include <gdefs.scad>
+
+// gfbase.scad -- gridfinity base stuff
+/*
+modules for constructing gridfinity baseplates,including
+snap connections for joining them. 
+I'll be using a 5 x 6 cell grid as the basic sonfiguration.
+*/
+
+module gprof() { polygon(BPF);}
+
+module corner (is_male=true){ rotate_extrude(angle = 90, convexity=2) profile(is_grid); }
+
+module edge(amt=U, is_male=true) { // creates edge along x axis in quanddrant 1 or 3
+        delta = is_male? BPH: BPH;
+        if (is_male) // extrude & position the base edge
+            rotate(90*$e2) extrude(amt) move(delta*$fwd) rotate(-90*$e3) profileM(); 
+        else // extrude & position the grid edge 
+            move(delta*$down) rotate(90*$e2) extrude(amt) rotate (90*$e3) gprof(); 
+}
+/*
+module mkedge(sz=U) {
+    difference() {
+    rotate(90*$z) rotate(90*$x) extrude(sz) gprof();         // make the edge
+    move([sz/2, 0, 0]) ikey();
+ }    };
+*/
+
+//TODO: base on profile poly
+//TODO: filleted corners, account for margins & fudge factor, add snaps points on outside walls
+module grid_cell(size=U) {
+    rotate(90*($e1+$e3)) extrude(size, $e3) profile(true);
+    move($fwd*(size))  mirror($e2) rotate(90*($e1+$e3)) extrude(size, $e3) profile(true);
+    rotate(90*$e3) mirror($e2) rotate(90*($e1+$e3)) extrude(size, $e3) profile(true);
+    move($right*(size)) rotate(-90*$e3) mirror($e1) mirror($e2) rotate(90*($e1+$e3)) extrude(size, $e3) profile(true);
+}
+
+// ====================================================
+// snap connections
+
+// "half key", the fundamental 2D profile 
+/*
+//module hk(w=.78+eps, dw=2*(.01+eps), h=1.8+2*eps, dh=.5+2*eps, r=.65, dy=.35, t=.46, a=224) {
+module hk(w=.78, dw=2*(.01), h=1.8, dh=.5, r=.65, dy=.35, t=.46, a=224) {
+    move(-eps*($x+$y))                      // ensure overlap when paired with mirror imag
+    union() {
+        square([w,h], false);               // main slot
+        move(r*($x+$y)+dy*$y) circle(r);    // the bulge
+        square([w+dw,dh], false);           // widen lower slot
+     }
+     move(w*$x+h*$y) rotate((a)*$z) square(t,false);    // upper right tangent
+ } hk();
+}   
+*/
+module hk(ks=KS, dk=dKD, ksb=KSB,kst=KST) {
+    move(-[eps, eps])                       // ensure overlap when paired with mirror imag
+    union() {
+        square(ks, false);                  // upper slot part
+        square(ks+dk, false);               // widen lower slot
+        move(ksb.y) circle(ksb.x);          // the bulge
+    } 
+    move(ks) rotate((kst.x)*$z) square(kst.y,false); // upper right tangent square
+ } //hk(); 
+
+// "inverse" hk -- a 2D negative of hk, centered on $y, running along $x axis
+module ihk(sz=URC) { difference() { square([sz.x/2,sz.y], false); hk();} }
+ 
+// extruded ihk
+module xihk(sz=URC) { // extrude the 3D half key, rotate to face +X and to and center on x & z axes
+        move(-[sz.x,0,sz.z]/2) rotate(90*$x) rotate(90*$y) extrude(sz.z) ihk(sz); 
+}
+
+// ====================================
+// snap connector
+module scf(sz=URC) { // female snap connector for joining adjacent grids
+    // helpers
+    module trim(s=S)  { move(P+[0,.5,-.1]) rotate(45, wedge(R,P)) rotate(45*$z) cube(s, true); }
+    module trim2(axis=$y, s=S) { trim(s); mirror(axis) trim(s);};
+    difference()  {
+        union() { xihk(); mirror($y) xihk(); };     // create full connector
+        union() { trim2(); mirror($x)trim2($y);}    // trim upper corners
+   }   
+}
+
+
+/*
+// full "key" profile
+module sk() { union() {  hk(); mirror($left) hk(); }; } 
+
+// half hole to match the half key
+module hh(sz=[URC.x/2,URC.y]+2*[eps,eps]) {difference() {square(sz, false); hk(); } ; } 
+
+// full "keyhole" profile
+module sh(sz=[URC.x/2,URC.y]){ union(){ hh(sz); mirror($left) hh(sz); }; }
+*/
+
+
+
+/*
+
+//WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW
+
+// trial build a 1U edge with a centered connection point
+/*                      [URC.z+2*MGN, BPW-XI-mgn, GFT]
+union() {
+   move($z*BPH) edge((U-URC.z)/2, is_male=false); 
+   move($x*(U-URC.z)/2) rotate(90*$z) rotate(90*$x) scm();
+   move($x*(U+URC.z)/2+$z*BPH) edge((U-URC.z)/2, is_male=false); 
+};
+
+module ikey(sz=URC.z+2*eps) { 
+    union() {
+        move([-eps,-eps, XI/2]) 
+        rotate(90*$z) rotate(90*$x) extrude(sz) ihk();
+        //cube([sz+eps, BPW+eps, XI/2+eps], false);  
+    };
+}
+
+*/
+
+
+//mkedge();
+//hk();
+//ihk();
+//xihk();
+//scf();
+
+//ikey();
+//profileF();
+//sk();
+//hh();
+//sh();
+//scm();
+//rotate(-90*$y) snapcon();                 // for printing 1 connector
+// array(4,3,8) rotate(-90*$y) snapcon();   // array of 12 connectors

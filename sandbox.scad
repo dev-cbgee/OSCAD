@@ -1,0 +1,33 @@
+
+include <oscad.scad>
+
+
+
+                                               /*^^^^^*\                                      
+==============================================/ SANDBOX \================================================*/
+/*
+function pl_arrowshaft(w=4,h=1) = [[0,h],[w,h], [w,-h], [0,-h]]; 
+function pl_arrowhead(w=4,h=1)  = [[0,h],[w,0], [0,-h,]];
+//poly(pl_arrowshaft());
+//poly(pl_arrowhead(), [2,1]);
+*/
+
+L1 = [1,2,3,4,5]; L2=[function(stack) add(stack),3,2,1];
+List = [[0,10],[99,20],[0,30]]; item=[1,0];
+M9 = [ [1,2,3], [4,5,6], [7,8,9] ];
+
+//echo(push(L1,"test"));
+
+fcn = function(stack) add(stack);
+
+//echo( top(L1)(pop(push(L1,fcn))));
+//echo(fcn);
+//echo(push(L1,fcn)[0](L1));    // ==> ECHO: [3, 3, 4, 5]
+/*
+echo(top(L2)[0]);               // ==>ECHO: function(stack) add(stack)
+echo(L2[0](pop(L2)));           // ==>ECHO: [5, 1]
+echo(top(L2)(pop(L2)));         // ==>ECHO: undef WARNING: Can't call function on vector ...
+echo(top(L2)[0](pop(L2)));      // ==>ECHO: [5, 1]
+*/
+//function exec(stack) = stack[0](pop(stack));
+//echo(over(L1,3));
