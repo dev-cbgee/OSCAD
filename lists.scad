@@ -9,7 +9,7 @@ use <misc_ops.scad>
 // insert 'item' at the front of 'list'
 function push(list,item) = 
     assert(!is_undef(list) && len(list)>= 0, "bad list!") 
-    [for(i=[0:N]) (i==0)? item : list[i-1]];
+    [for(N=len(list), i=[0:N]) (i==0)? item : list[i-1]];
 
 // insert 'list2' to front of  of the 'list'
 function pushl(list,list2) = concat(list2,list);
@@ -20,7 +20,7 @@ function pop(list, n=1) = let(N=len(list))
     assert(0<=n && n<N, "'n' out of range!")
     (n<0 || n>=N)? undef : [for (i=[n:N-1]) list[i]];
 
-// item 'n' jumps over items ahead of it to the front of 'list'
+// item 'n' jumps over preceding items to the front of the 'list'
 function over(list,n=1) = let (N=len(list)-1) (n<0)? undef : (n>=N)? undef:
     [for(i=[0:N]) (i==0)? list[n]:(i<=n)? list[i-1] : list[i]];  
 

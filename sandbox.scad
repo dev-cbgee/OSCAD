@@ -18,10 +18,10 @@ M9 = [ [1,2,3], [4,5,6], [7,8,9] ];
 
 //echo(push(L1,"test"));
 
-fcn = function(stack) add(stack);
+//fcn = function(stack) add(stack);
 
 //echo( top(L1)(pop(push(L1,fcn))));
-//echo(fcn);
+echo(add(L1));
 //echo(push(L1,fcn)[0](L1));    // ==> ECHO: [3, 3, 4, 5]
 /*
 echo(top(L2)[0]);               // ==>ECHO: function(stack) add(stack)
@@ -31,3 +31,5 @@ echo(top(L2)[0](pop(L2)));      // ==>ECHO: [5, 1]
 */
 //function exec(stack) = stack[0](pop(stack));
 //echo(over(L1,3));
+fan([2,45], [.5,5 ], [4,90]) square([.15,.1],center=true                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   );
+
