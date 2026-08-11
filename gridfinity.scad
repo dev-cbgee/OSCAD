@@ -1,217 +1,208 @@
-// gridfinity.h.scad
- include <math.scad>   // which includes oscad.h.scad
+// gridfinity.scad
+
+include <oscad.scad>
+//include <math.scad>   // which includes oscad.scad
+ 
                                            /*^^^^^^^^^*\
 ==========================================/ DESCRIPTION \=================================================
-  
-  defines and various useful primitives
+ based on https://gridfinity.xyz/specification/
+
+    > defines constants and various useful primitives
+    
+    constant / function / module name abbreviations, e.g., 'gfbp_h' denotes gridfinity baseplate height
+        gf..    <==> 'gridfinity'
+        ..bp..  <==> 'baseplate'; 'gfbp' is implied
+        ..[w|W] <==> 'width' ('x' size)
+        ..[l|L] <==> 'length'('y' size)
+        ..[h|H] <==> 'height'('z' size)
+        ..p     <==> ''profile'
+        ..r     <==> 'radius'
+        ..d     <==> 'diameter'or 'depth', depending on context
+        ..box   <==> 'containing box', as a 3- vector: [w, d, h]
+        --[u|U] <==> 'unit'
+        ..t     <==> 'thickness'
+        sc..    <==> 'snap connect(or|ion)'
+        ec..    <==> 'edge connect(or|ion)'     
+        
+        
+     use 'style' integer as a set of bit flags for various settings 
+        -- snap connection, rounding, magnets, screwholes, etc.
+        
 
                                                /*^^*\
 ==============================================/ TODO \====================================================
 
-    >: bins: lid, bottom, stacking lip
-
+    !> bins: lid, bottom, stacking lip
+    ?> could snap connections secure bins in baseplate?
+    !> add 'style' marker to snappable baseplate edge argument list
 
  /*^^^^^^^^^^^^^^^^^^^^*\
 / constants & parameters \==============================================================================*/
+    
+    // 'u' and 'tol' are the only independent values; all others are based on them
+    gf_u    = 7;                    // baseline reference unit
+    gf_tol  = 2 * $dz;              // tolerance (0.5 mm)
+    gf_t    = 1.0;                  // default wall & floor thickness (not in the spec)
 
-gclc    = .25;          // gridfinity 'clearance' (& thickness of lid's top layer)
-gmgn    = sqrt(gclc);   // around borders of mating parts = 
-gtop    = 5.0;          // total 'top' height
-gflr    = 2*gclc;       // bottom floor layerthickness
-gltp    = 5.0-gclc;    // top thickness
-//mgn     = MGN/2;
-//MARGIN  = MGN*[1, 1,0];
+    // general parameters (mm)
+    gf_U    = 6 * gf_u;             // standard width & length unit size
 
-// standard gridfinity units (in mm)
-//GFU = [U,U,u];
-GFT = .5;    // floor thickness (work on this)
+    gf_W    = gf_U;                 // standard width
+    gf_L    = gf_U;                 // standard depth
+    gf_H    = gf_u;                 // standard height
 
- /*^^^^^^^^^^^^^^^^*\
-/ profile parameters \==================================================================================*/
+    gf_box  = [gf_W, gf_L, gf_H];   // 1u base bounds
+    
+ 
+    // base profile
+    gf_3    = gf_u*43/140;          // 2.15
+    gf_2    = gf_u*9/35;            // 1.8
+    gf_1    = gf_u*8/70;            // 0.8
+    gf_h    = gf_1 + gf_2 + gf_3;   // 4.75
+    gf_w    = gf_U - gf_tol;        // bin width, depth
+    gf_f    = gf_w-2*(gf_1+gf_3);   // floor width, depth     (35.6)
+    
+    //base corner rounding
+    gfd_3   = 7.5;                  // corner top outer diameter
+    gfd_2   = 3.2;                  // corner middle diameter
+    gfd_1   = 1.6;                  // corner bottom diameter
+    
+    // magnet & screw holes
+    gf_xy   = 4.8;                  // internal x,y offset from base inside corners
+    gfsh_d  = 3.0;                  // M3 screw hole diameter
+    gfmh_d  = 6.5;                  // magnet hole diameter
 
-// taken from design reference at https://gridfinity.xyz/assets/img/spec_draft_willtree8.jpg
-// units are in millimeters (mm)
-u   = 7;    // standard height unit
-U   = 6*u;	// standard horizontal unit
-ptol = 0.25;         // profile 'tolerance'        
+    // baseplate grid profile
+    bp_3    = gf_3;                 // 2.15
+    bp_2    = gf_2;                 // 1.8
+    bp_1    = gf_u/10;              // 0.7  - all based on 'u'
+    bp_w    = bp_1+bp_3;            // baseplate width
+    bp_h    = bp_1+bp_2+bp_3;       // baseplate height
+    bp_H    = 5.0;                  // specified total baseplate cell wall height 
 
-h0 = 5.0;           // total height of baseplate cell wall
-h1 = u/10;          // 0.7  - all referred to 'u'
-h2 = u*9/35;        // 1.8
-h3 = u*43/140;      // 2.15
-h4 = u*19/70;       // 1.9
+    // stacking lip
+    sl_3    = gf_u*19/70;           // 1.9
+    sl_2    = bp_2;                 // 1.8
+    sl_1    = bp_1;                 // 0.7
+    
 
-BPH = h1+h2+h3;  // baseplate height
-BPW = h1+h3;     // baseplate width
-BPC = [BPW, BPH, BPW]*1.5;  // size of the corner block
+ /*^^^^^^^^^^^^^^^\
+/ snap connections \-----------------------------------------------------------------------------------*/ 
 
-BPP = [zero, [BPW,0], [h3,h1], [h3,h1+h2], [0,BPH]];                // baseplate profile points
-//GLP = [zero, [0,h1], 
+// these numbers were reverse engineered from the original '.stl' file, using OrcaSlicer
+    //!! > insert file URL here
 
-BPL = concat([for (i=[0:1:len(BPP)-2]) BPP[i]], [[0,h1+h2+h4]]);    // ?!?!  stacking lip points
+    sc_w    = 4.3;
+    sc_h    = 3.45;
+    sc_l    = 4.0;
+    sc_box  = [sc_w, sc_h, sc_l];
 
- /*^^^^^^^^^^^^^^^^^^^^^^^^*\
-/ snap connection parameters \==========================================================================*/
+    // key slot
+    ks_w    = 0.78;                 // key slot width
+    ks_h    = 1.8;                  // key slot height
+    ks_box  = [ks_w, ks_h];         // [width, height] of main key slot
+    ks_diff = [.02,-1.3];           // differential to widen lower key slot section
+    ks_circ = [0.65, [.65, 1,0 ]];  // [radius, [center point]] of bulge's circle
+    ks_tan  = [224, .46];           // [angle, side] of tangent square 
 
-SCW = 4.3/2;  SCH = 3.45; SCL = 4.0;  //[width, height,length]
-URC = [SCW*2, SCH, SCL];    // upper right corner point of connector
-KS  = [0.78, 1.8];          // [width, height] of main key slot
-dKS = [.02,-1.3];           // "delta" to widen lower slot component
-KSB = [0.65, [.65, 1,0 ]];  // [radius, [center point]] of bulge's circle 
-KST = [224, .46];           // [angle, side] of tangent square 
+    // edge connector
+    ec_l    = 4.0;                  // edge connector length
+    
+  /*^^^^^^*\
+ / profiles \===========================================================================================*/
+
+    //!!> add style options, signaled via binary flags
+    //!!> lid
+    //!!> stackable lip
+    
+    //gridfinity profile
+    function gf_p()         = [zero, [gf_1+gf_3,0], [gf_3,gf_1], [gf_3,gf_1+gf_2], [0,gf_h]];
+    
+    // baseplate profile
+    function bp_p()         = [zero, [bp_w,0], [bp_3,bp_1], [bp_3,bp_1+bp_2], [0,bp_h]]; 
+
+    // edge extrusion list
+    function bp_edge()      = ["baseplate edge extrusion", gf_U, bp_p()];
+
+    // sc_key default argument [list | stack]
+    function kp_args()      = [ks_box, ks_diff, ks_circ, ks_tan];
+   
+    // edge connector: width, floor thickness, extrusion length, baseplate profile point list
+    function ec_p()         = [bp_w, gf_t, ec_l, bp_p()]; 
 
 
-/*
-P       = URC/2;            // connector center point
-R       = [P.x, P.y,0];     // P's projection onto x-y plane
-TS      = [1.5, 1.9];       // [backoff%, ,size] of corner trim square
-P_c     = E2C(P);
-*/
- /*^^^^^^^^^^^^^^^^*\
-/ profile generators \==================================================================================*/
+  /*^^^^^^^^^^^^^^^^*\
+ / profile generation \----------------------------------------------------------------------------------*/
+ 
+// profiles are generated in X-Y plane, usually in Q1, for extrusion along +Z axis
 
-// profiles are generated in XY.Q1, for extrusion along +Z axis
+// basic profile generator, a wrapper for 'poly'; defaults to gridfinity baseplate profile
+module gf_p(point_list=bp_p()) { if(debug) echo("gf_p in");  poly(point_list); if(debug) echo("gf_p out");}
 
-module ep(ptlist=BPP) { poly(pts=ptlist); } // basic edge profile generator; defaults to gridfinity 
-
-
-module hk(ks=KS, dk=dKS, ksb=KSB,kst=KST) { // "half key" profile -- for snap connector
-    move([-2*eps,0]) {
-        square(ks+eps*[0,4]);              // upper slot
-        square(ks+dk);                   // widened lower slot 
-        move(ksb.y) circle(ksb.x+eps);      // add the bulge
-        move(ks) rotate((kst.x)*$z) square(kst.y);  // add upper right tangent square
-    };
+// snap connection profiles
+module sc_hkp(arg=kp_args()) {       // "half key" profile, the foundation
+    let (ks=arg[0], dk=arg[1], ksb=arg[2], kst=arg[3]){
+        if (debug) echo("sc_hkp in",ks=ks,dk=dk,ksb=ksb,kst=kst);
+        move([-eps,0]) {
+            square(ks+eps*[0,4]);                                   // upper slot
+            square(ks+dk+eps*[2,0]);                                // widened lower slot 
+            move(ksb.y) circle(ksb[0]+eps);                         // add the bulge
+            move(ks) rotate((kst[0])*$z) square(kst.y);             // add upper right tangent square
+        };
+    }
+    if (debug) echo("sc_hkp out");
 }
 
-module sk() { duplet() hk(); }         // full "snap key" profile
-module hh() { invert([SCW,BPH]) hk(); } // half "keyhole" profile
-module sh() { duplet() hh(); }         // full "keyhole" profile
+// baseplate edge snap connector key profile
+module  sc_ekp(arg=ec_p()){
+    let(w=arg[0], h=arg[1]) {
+        if (debug) echo("sc_ekp in",w=w,h=h);
+        move([0,h]) sc_hkp(); square([w,h]);
+    }
+    if (debug) echo("sc_ekp out");
+}
 
-module ek() { 
-    let ( basew=SCW+BPW-(SCW-h1+ptol), baseh=h1-ptol)//BPH-(SCH+ptol) ) 
+// edge key 'die' that makes an edge key when removed from 'edge'
+module  bp_ek(arg=ec_p())  {extrude(arg[2]) difference() {poly(arg[3]); sc_ekp(arg);}; }
+
+module  sc_keyp(stack=kp_args()) { duplet() sc_hkp(stack); }               // full "snap key" profile
+module  sc_hhp (stack=kp_args()) { invert([sc_w, bp_h]) sc_hkp(stack); }   // half "keyhole" profile
+module  sc_khp (stack=kp_args()) { duplet() sc_hhp(stack); }               // full "keyhole" profile
+       
+module  gf_edge(arg=bp_edge(), newlen=gf_U) { // replaces arg's length with newlen, because 'arg' is immutable
+    extrusion( swap( push( pop( swap(arg)), newlen) ) );
+}
+
+
+// creates a baseplate edge with a centered snap connection key
+module sc_edge(length=gf_U) { difference() {gf_edge(newlen=length); move([0,0,(length-ec_l)/2]) bp_ek(); };}
+
+// module sc_ecp() {difference() { bp_p(); move([0,0.2]) sc_hkp(); square([bp_w, 0.2]); };}
+
+
+// √ ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+module sc_ek() {    // baseplate edge snap connector key profile   //!!> use a stack
+    let ( basew=sc_w+bp_w-(sc_w-bp_h1), baseh=bp_h1)
     {
-        //:! edge key depth = BPW -(SCW + ptol); floor height = h0 -(SCH +ptol)   
+        //:! edge key depth = bp_w -(sc_w); floor height = h0 -(sc_h)   
         move([0,baseh-2*eps]) hk(); square([basew, baseh]); 
-    };  // edge key profile
-}
-//ek();
-
- /*^^^^^^^^^^^^^^^^*\
-/ general primitives \====================================================================================*/
-
-// create a profile extrusion
-module edge(length=U, points=BPP) { /*move(-(length+eps)*$z/2)*/ extrude(length+2*eps) ep(points);}
-
-module test_ec(L=16) { 
-    ZX2XY() 
-    difference() {  
-        edge(L);
-        move([0, 0, (L-SCL)/2]) ecm();
     }
 }
-//test_ec();
 
 
-module cell(sz=U) { // create a single cell in {XxZ}; use 'array' to make a grid
-    module mk2() {duplet() move(-sz*($x+$z)/2) extrude(sz) ep(); }
-    mk2(); RY() mk2(); 
-}
- 
+ /*^^^^^*\
+/ sandbox \================================================================================================*/
 
- /*^^^^^^^^^^^^^^*\
-/ snap connections \======================================================================================*/
+//sc_edge(length=16);
 
-//rework this stuff to use 'doublet' & 'quad'
+//poly(gf_p());
+sc_ekp();
+//echo(ec_p());
 
-// right half of snap connector
-module hsc(sz=URC, ks=KS, dk=dKS, ksb=KSB, kst=KST, chamfer=true) { 
-    urc=[sz.x/2, sz.y, sz.z/2]; // adjusted upper right corner
-    module cubie(s=[[2,2,.75], .9*urc+[0,.5,-.1]])//chamfer parameters -- [size, back-off ratio+delta]
-            {move(s[1]) rotate(90, wedge([sz.x,sz.y,0],sz)) RX(36) cube(s[0], true); }
-    module xsc(sz=URC, ks=KS, dk=dKS, ksb=KSB, kst=KST, chamfer=true)  // 1/4 connector, extruded & chamfered 
-            { difference() { cube(urc); extrude(urc.z) hk(ks,dk,ksb,kst); if (chamfer) cubie(); ;} ;}
-    duplet($z)xsc(sz,ks,dk,ksb,kst, chamfer);  // double up
-}
+ /*^^^^^^^^^^^^^^^^\
+/ construction zone \=======================================================================================
 
-//hsc();
-// full snap connector -- TODO: work on the 'adjusting' functionality!!!
-module sc(sz=URC, ks=KS, dk=dKS, ksb=KSB, kst=KST, chamfer=true)    
-    { duplet($x) hsc(sz, ks, dk, ksb, kst, chamfer); }             // re-double
-
-module ec (L=SCL) {extrude(L) ek(); }           // snappable edge connection
-module ecm(L=SCL) {extrude(L) invert() ek();  } // snappable edge connection mold  
-
-module imprint(P=U/2) {difference() {children(1); move([0,0,P-eps]) children(0); }; }
-
-// make connection points for left & right grid edges
-module pairsLR(xz, S=1) { M=xz[0]; N=xz[1];  // ([M,N], scale factor)
-    module pairLR(xz,S=1) {x=S*xz[0]-8*eps; z=S*xz[1]-SCL/2; duplet() move([x,0,z])  children(); }
-    if (N%2==0) pairLR([-M/2,0],S) ecm();
-    n0=(N%2==0)?0:.5;  
-    for (n=[n0:(N-1-n0)/2]) if (n!=0) duplet($z) pairLR([-M/2,-n],S) ecm();
-}
-    
-// make connection points for bottom& top grid edges
-module pairsBT(xz, S=1) { M=xz[0]; N=xz[1];// ([M,N], scale factor)
-    module pairBT(xz,S=1) {x=S*xz[0]+SCL/2; z=S*xz[1]-8*eps; duplet($z) move([x,0,z]) RY(-90) children(); }
-    if (M%2==0) pairBT([0,-N/2],S) ecm();
-    m0=(M%2==0)?0:.5;  
-    for (m=[m0:(M-1-m0)/2]) if (m!=0) duplet() pairBT([-m,-N/2],S) ecm();
-}
-
-module conxns(xz, S=1) {ZX2XY() { pairsLR(xz,S);  pairsBT(xz,S); } }
-
-module mkgrid(xy,L=U,mink=false) {
-    module _grid (xy,L=U) {ZX2XY() array(xy[0],xy[1]) cell(L);}
-    if (mink) { $fn=20; minkowski() { _grid(xy,L); cylinder(r=.25,h=.125); } }
-    else _grid(xy,L);
-}
-
-module snapgrid(xy,L=U,mink=false) {RZ() difference() {mkgrid(xy,L,mink); conxns(xy,L);} }
-// mink screws up the connection points; need to rework it
-
-                                                 /*^^*\                                         
-================================================/ DONE \====================================================
-    
-    √: grid edge connection points.
-
-
-                                          /*^^^^^^^^^^^^^^^^*\                                      
-=========================================/ CONSTRUCTION ZONE  \===========================================*/
-
-// >: create a lid by subtracting a base cell from a GFU 'cube', removing outeer 'collar
-//ZX2XY() 
-/*
-difference() 
-{ 
-    dejust() 
-    cube([U-,u+h1,U], center=true);  // in Z-X plane, 'Y' is up
-    adjust(.025*ONES) cell(); 
-}
-
+    (x/2)%2 tests bit 1
 */
-
-
-
-                                               /*^^^^^^*\                                      
-==============================================/ SANDBOX  \================================================*/
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 

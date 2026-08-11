@@ -20,14 +20,24 @@ Minimal, general Open SCAD (OSCAD) support parameters,functions and operators
  /*^^^^^^^^*\
 / parameters \===========================================================================================*/
 
-$fn  = 60;      // # of segments comprising the circumference of a "circle"
-$sf  = 1;       // 1:$sf scale factor, i.e., 1 OSCAD unit = $sf physical units.
-$max = 10000;   // 10^4 (10 meters, when $fs==1 (defaul)
-eps = 10/$max;  // ε, OSCAD offset to effect a trivial overlap connecting adjacent objects
+debug = false; // true;
+
+nozzle_d    = 0.4;  
+dwf_t       = 2 * nozzle_d;     // default wall and floor thickness
+$dz         = 0.25;             // "tolerance; dead zone between mating parts
+$fn     = 60;                   // # of segments comprising the circumference of a "circle"
+$sf     = 1;                    // 1:$sf scale factor, i.e., 1 OSCAD unit = $sf physical units.
+$max    = 10000;                // 10^4 (10 meters, when $fs==1 (defaul)
+eps     = 10/$max;              // ε, OSCAD offset to effect a trivial overlap connecting adjacent objects
+
 
  /*^^^^^^^^^^^^^^^*\
 / special constants \====================================================================================*/
 
+zero    =   [0,0];      $origin  = zero;     // 2-D
+ZERO    =   [0,0,0];    $ORIGIN  = ZERO;     // 3-D
+
+ 
 // unit coordinate vector 'i' in N-space
 function $e(i, N=3) = [for (j=[1:N]) j==i? 1:0];
 
@@ -42,19 +52,22 @@ function $eps(N=3)   = eps * $ones(N);
 
 use <misc_ops.scad>
 use <lists.scad>
+/*
+use <points.scad>
 use <stacks.scad>
 use <vectors.scad>
 use <matrices.scad>
 use <geo_algebra.scad>
-/*
 */
 
                                                /*^^*\
 ==============================================/ TODO \=====================================================
-    !>:structure and economize assertion testing 
-    !>:use stacks to pass parameters to modules (& functions?)  
-    >: add internal validity checks of parameters, etc.,  to list & point operations
-    >: rethink stack operations -- add & subtract should return modified stack as result
+    > structure and economize assertion testing 
+    > use stack to pass parameters to modules (& functions?)  
+        => just do: fcn(iparam1,param2, ...]); can use stack ops inside fcn!
+    > add 'assert' internal validity checks of parameters, etc.,  to list & point operations
+----------
+    √ rethink stack operations -- add & subtract should return modified stack as result
 
 
 =========================================================================================================*/
