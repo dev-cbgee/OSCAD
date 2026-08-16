@@ -1,22 +1,9 @@
 // misc_ops.scad
-include <oscad.scad>
+
+//include <oscad.scad>  // includes defs file
 
 //!!    > fix centering option 
 //!!    > args: start, finish, delta Rf, dR  ???
-
-
- /*^^^^^^^*\
-/ bit flags \======================================================================================*/
-
-// using simple integer as a set of binary flags.
-function is_set(flag,n)     = (floor(flag)/2^n)%2==1;
-function bit_set(flag,n)    = floor(flag) + (is_set(flag,n)? 0 : 2^n);  
-function bit_clr(flag,n)    = floor(flag) - (is_set(flag,n)? 2^n : 0);
-function bit_flip(flag,n)   = floor(flag) + (is_set(flag,n)? -2^n : 2^n);
-
-// extract a flag subgroup freom within the overall flag: mmmmnnn==> mmmm, m in [0|1]
-function bit_grp(flag,n,m)  = floor(floor(flag)/(2^n)%(2^m)); // the 'm' bits before the last 'n' bits
-//echo(bit_grp(64+32+8+2+1, 3, 4))  // 1101011 ==> 13 (dec)  <--> '1101' (binary)
 
 
  
@@ -30,15 +17,6 @@ module adjust(e = eps) { move(-e) scale((ones(len(e))+2*e)) children(); }
 
 // add mirrored duplicate of each child along vector 'v'  (cf stack function 'dup')
 module dup(v=$x) { children();  mirror(v) children(); } 
-
-// wraps x, in either direction, around to [0..N-1]
-function mod(x,N) = ((x%N)+N)%N;
-
-// dimensions of matrix (only tested for 2D matrices)
-function dim(M, d=[]) = is_undef(M) ? undef : is_undef(M[0]) ? d : dim(M[0], concat(d, [len(M)])) ; 
-
-// polar to rectangular conversion
-function P2R(pt) = [pt[0]*cos(pt[1]), pt[0]*sin(pt[1])];    // [r, θ] => [x, y] 
 
 function ctr(L,R) = [(R+L)/2, (R-L)/2];
 function spread(center, delta) = [center-delta, center+delta];
@@ -111,8 +89,22 @@ module extrusion(arg){ //
     
 module duplet(dir=$x) { children(); move(eps*dir) mirror(dir) children(); }           // original+ left-mirrored image
 
+/*
+    - invert the (implicitly) convex profile defined by 'points'; return ts exterior as a profile
+    - can't be done using poly; must do in a module by subtracting poly(points) from its bounds
+    => need to create points' bounding rectangle
+
+    border(points) = [LL, UR]; where LL & UR are lower left and upper right corners of the bounding rect 
+
+NB: a point list is also a Nx2 matrix.; col2row would be useful
 
 
+*/
+
+/*************************************************************************************************************/
+points = [[1, 1], [3,1], [2,2]];
+
+inverse(points);
 
 
 

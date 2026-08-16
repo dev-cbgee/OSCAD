@@ -28,8 +28,8 @@ basically, try to mimic a FORTH interpreter or an RPN calculator
 
  /*^^^^^^^^*\
 / operations \===========================================================================================*/
-function dup (stack)      = push(stack, stack[0]);
-function swap(stack)      = push(push(drop(stack,2),stack[0]),stack[1]);
+//function dup (stack)      = push(stack, stack[0]);
+//function swap(stack)      = push(push(drop(stack,2),stack[0]),stack[1]);
 
  /*^^*\
 / math \=================================================================================================*/

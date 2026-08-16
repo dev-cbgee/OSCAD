@@ -1,73 +1,56 @@
-  // oscad.scad 
- 
-                                            /*^^^^^^^^^*\
-===========================================/ DESCRIPTION \=================================================
-Minimal, general Open SCAD (OSCAD) support parameters,functions and operators
+//oscad.scad
+include <oscad_defs.scad>
+include <math.scad>
+include <point_ops.scad>
+include <list_ops.scad>
+include <stack_ops.scad>
 
 
-                                         /*^^^^^^^^^^^^^^*\
-========================================/ GENERAL CONCEPTS \===============================================
+module extrusion(arg, center=false){ let (h = arg[1], pts = center? centered(arg[2]) : arg[2]) 
+    { if (debug) echo("extrusion:", arg=arg); extrude(h, center)  poly(pts); };
+}
 
- !: OSCAD values are considered immutable; there is no concept of 'variable' in the usual sense
-    - what may appear to be a variable is merely a name that maps to a value
-        !: a name may be reused (mapped to a new value) within a subordinate scope; it doesn't persist
-    - they mostly serve to parameterize modules
-    - except for 'eps' most general value names will begin with '$'
+// arrange an MxN rectangular grid of children w/ vector spacing 'S'
+module grid(M=1, N=1, S=$x+$y,center=false) {
+    if(debug) echo("entering grid:", M=M, N=N, S=S, center=center);     
+    let (ML = center? -(M-1)/2 : 0, MR = center?  (M-1)/2 : M-1,
+         NB = center? -(N-1)/2 : 0, NT = center? (N-1)/2 : N-1) {
+        echo(ML=ML,MR=MR,NB=NB, NT=NT); echo(S=S);
+        for(i=[ML:MR], j=[NB:NT]) move(([i*S[0],j*S[1]])) children(); 
+    }
+    if(debug) echo("leaving grid:");     
+}
 
- !: some trivial (re)naming and apparently trivial operations here can simplify later code
- 
-    
- /*^^^^^^^^*\
-/ parameters \===========================================================================================*/
+//same as 'grid', but with parameters passed on a stack (a list)
+module grid_s(stack) { //(M=1, N=1, S=U*[$x,$y],center=false) {
+    let (M = stack[0][0], N=stack[0][1], spacing=stack[1],centering=stack[2],
+         ML = centering? -(M-1)/2 : 0, MR = centering?  (M-1)/2 : M-1,
+         NB = centering? -(N-1)/2 : 0, NT = centering? (N-1)/2 : N-1) {
+        for(i=[ML:MR], j=[NB:NT]) move((i*spacing[0] +j*spacing[1])) children(); 
+    }    
+}
 
-debug = false; // true;
+// like 'grid', but with R0 & dR in polar coordinates
+module grid_p(R0,dR,M,N,center=true) {
+    let( LR = center? ctr(0,M-1) : [0,M], BT = center? ctr(0,N-1) : [0,N] ) 
+    {
+        for (i=[LR[0]-LR[1]:(LR[0]+LR[1])], j=[BT[0]-BT[1]:BT[0]+BT[1]])
+        let( r=[R0[0]+j*dr[0], R0[1]+i*dR[1]])  move_p(r) children();
+    }
+}
+   
 
-nozzle_d    = 0.4;  
-dwf_t       = 2 * nozzle_d;     // default wall and floor thickness
-$dz         = 0.25;             // "tolerance; dead zone between mating parts
-$fn     = 60;                   // # of segments comprising the circumference of a "circle"
-$sf     = 1;                    // 1:$sf scale factor, i.e., 1 OSCAD unit = $sf physical units.
-$max    = 10000;                // 10^4 (10 meters, when $fs==1 (defaul)
-eps     = 10/$max;              // ε, OSCAD offset to effect a trivial overlap connecting adjacent objects
+// move to polar coordinate z = '[r,w]'  !>: need to add 2D | 3D tests
+module move_p(z, rot=true) { move(P2R(z)) rotate(rot ? z[1]:0) children();}
 
+// place 'N' children along an arc, starting at R0 in increments of dR (all in polar form)
+module arcn(R0,dR,N,rot=true){ for(i=[0:N-1]) move_p(R0+i*dR, rot)children();}
 
- /*^^^^^^^^^^^^^^^*\
-/ special constants \====================================================================================*/
+// place children along an arc, from R0  to RN, with spacing dR (all in polar form)
+module arcl(R0,dR,RN,rot=true){ arcn(R0, dR, (RN[1]-R0[1])/dR[1],rot) children();}
 
-zero    =   [0,0];      $origin  = zero;     // 2-D
-ZERO    =   [0,0,0];    $ORIGIN  = ZERO;     // 3-D
-
- 
-// unit coordinate vector 'i' in N-space
-function $e(i, N=3) = [for (j=[1:N]) j==i? 1:0];
-
-// the x,y,z axis vectors
-$x = $e(1);    $y = $e(2);     $z =$e(3);
-
-function $ones(N=3)  = [for (i=[1:N]) 1];
-
-function $zeros(N=3) = 0 * $ones(N); 
-
-function $eps(N=3)   = eps * $ones(N);
-
-use <misc_ops.scad>
-use <lists.scad>
-/*
-use <points.scad>
-use <stacks.scad>
-use <vectors.scad>
-use <matrices.scad>
-use <geo_algebra.scad>
-*/
-
-                                               /*^^*\
-==============================================/ TODO \=====================================================
-    > structure and economize assertion testing 
-    > use stack to pass parameters to modules (& functions?)  
-        => just do: fcn(iparam1,param2, ...]); can use stack ops inside fcn!
-    > add 'assert' internal validity checks of parameters, etc.,  to list & point operations
-----------
-    √ rethink stack operations -- add & subtract should return modified stack as result
-
-
-=========================================================================================================*/
+// make a polar array of children
+module fan(R0,dR,RN,center=true){ 
+    let (M=1+(RN[1]-R0[1])/dR[1], N=1+((RN[0]-R0[0])/dR[0])) 
+    grid_p(R0,dR,M,N,center) children();
+}

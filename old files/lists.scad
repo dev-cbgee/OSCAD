@@ -6,15 +6,6 @@ use <misc_ops.scad>
 / list operations \======================================================================================*/
 //!>: add assertion test(s) for valid conditions
 
-function first(list)    = list[0];
-
-function last(list)     = list[len(list)-1];
-
-function roll(list, n, i=0, R=[]) = // circular shift of all list elements;
-    let(N=len(list), modsum=(i+n)%N, nxti= (modsum>=0)? modsum : (N+modsum))
-    (is_undef(N)||(N==0))? undef : n==0? list : i>=N? R : roll(list,n,i+1,concat(R,list[nxti%N]))
-;
-
 
 // insert 'item' at the front of 'list'
 function push(list,item) = 
@@ -39,19 +30,8 @@ function over(list,n=1) = let (N=len(list)-1) (n<0)? undef : (n>=N)? undef:
     [for(i=[0:N]) (i==0)? list[n]:(i<=n)? list[i-1] : list[i]];  
 
 
- /*^^^^^^^^^^^^^^^^^^^^^^^^*\
-/ from a 'stack' perspective \===========================================================================*/
-
-function dup(stack) = assert(len(stack)>0,"empty stack!") push(stack, stack[0]);
-
-// a synonymous nod to HP RPN & FORTH
-function drop(stack, n=1) = pop(stack,n);   
-
-function swap(stack)= push(push(drop(stack,2),stack[0]),stack[1]);
-
 // ------------------------------
 
-function top(stack, n=1) = head(stack,n); // synonym for 'first', viewing list from a stack perspective
 
 // returns last 'n' items of the list as a sub list : list[m .. N-1]
 function tail(list,n=1) = (is_undef(list) || is_undef(len(list)))? undef : 
@@ -65,10 +45,14 @@ function split(list,n) = [head(list,n), pop(list,n)];
 
 // add 'item' to each element of list, when '+' is defined
 // !:  adding -(list[0] esseentially translates point list to the origin, moving its implied polygon
-function additem(list,item) = [for (N=len(list),i=[0:N]) (i<N)? list[i]:item]; 
+function additem(list,item) = [for (N=len(list),i=[0:N-1]) list[i]+item]; 
 
-// make a 1-D list from a column in an N-D list  
-function getcol(list,col) =  [for(i=[0:len(list)-1]) list[i][col]]; // return 1-D list from list col
+//replace list[n] with item
+function putitem(list,item,n) = [for (N=len(list),i=[0:N-1]) (i==n)? item : list[i]]; 
+
+// make a 1-D list from a column in an N-D list; NB: a points list is a Nx2 matrix  
+function getcol(list,col) =  [for(N=len(list)-1, i=[0:N]) list[i][col]];
+
 
 // make the  1-D 'newcol' a new column of the matrix 'list'
 function addcol(list,newcol) = [for (row=[0:len(list[0])-1]) additem(list[row],newcol[row])]; 

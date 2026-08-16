@@ -1,58 +1,41 @@
 // points.scad
+use <math.scad>
+
 
 /*^^^^^^^^^^^^*\
 / 2D point lists \=======================================================================================*/
-/*
-function bounds_UR(plist) = [max(getcol(plist,0)), max(getcol(plist,1))]; 
-function bounds_LL(plist) = [min(getcol(plist,0)), min(getcol(plist,1))]; 
-function bounds(plist)    = [bounds_LL(plist), bounds_UR(plist)];
 
-module bounds(plist) { rect(bounds(plist)); }
+function corners(points) = 
+    let(
+        Xs=getcol(points,0), L=min(Xs), R=max(Xs), 
+        Ys=getcol(points,1), B=min(Ys), T=max(Ys)
+    ) 
+    [ [L,B], [R,T] ]
+;
 
-module rect(points) {move(points[0]) square(sub(points));} // !>: rework: must sub from every pt in ptlist
+function size(points) = let (C = corners(points)) C[1]-C[0]; 
+
+// make the box that enfolds 'points'
+module box(points) { let (B=corners(points)) move(B[0]) square(B[1]-B[0]);}
+
+// creates profile negative of a points poly within its box
+module inverse(points) {difference() {box(points); poly(points);}}
 
 
+function centroid(points) = avg(points);
+function center(points) = [let(Bx=box(points), base=Bx[0], size=Bx[1]-Bx[0]) base+ size/2];
 
-*/
+
                                              /*^^^^^^^^^*\
 ============================================/ POINT LISTS \===============================================*/
+// find corners of a bounding box for points
 
-
-function top(pts,n=0,x=0)   = (n>=(len(pts))) ? x : top(pts,n+1, max(x,pts[n][1]));
-function left(pts,n=0,x=0)  = (n>=(len(pts))) ? x : left(pts,n+1, min(x,pts[n][0]));
-function right(pts,n=0,x=0) = (n>=(len(pts))) ? x : right(pts,n+1, max(x,pts[n][0]));
-function bottom(pts,n=0,x=0)= (n>=(len(pts))) ? x : bottom(pts,n+1, min(x,pts[n][1]));
-function displacement(pts)  = [left(pts), bottom(pts)];
-function extent(pts)        = [right(pts), top(pts)];
-function range(pts)         = [displacement(pts), extent(pts)];
-function size(pts)          = extent(pts) - displacement(pts);
-function center(pts)        = displacement(pts)+size(pts)/2;
 function centroid(pts,n=0,sum=zero) = 
     (len(pts)<=0) ? undef : (n>=len(pts)) ? sum/len(pts) : centroid(pts,n+1, sum+pts[n]);
-
-module bounds(pts)      { move(displacement(pts)) square(size(pts)); } // point list's bounding rectangle
 
 module negative(pts)    { difference() {bounds(pts); poly(pts);}; }   // 'photo' negative, within its bounds
 
 
-                                             /*^^^^^^^^\
-============================================/ rotations \=================================================*/
-
-// rotate around a given axis
-module ROT(angle=90,axis=$z)  {rotate(angle, axis) children(); }
-module RX(angle=90) { rotate(angle, $x) children();}
-module RY(angle=90) { rotate(angle, $y) children();}
-module RZ(angle=90) { rotate(angle, $z) children(); }
-
-//single rotations, axis to axis:  X --> Y -->Z --> X...
-module RXY(angle=90) {RZ(angle) children();}    module RYX(a=90) {RXY(-angle) children();} 
-module RYZ(angle=90) {RX(angle) children();}    module RZY(a=90) {RZY(-angle) children();} 
-module RZX(angle=90) {RY(angle) children();}    module RXZ(a=90) {RZX(-angle) children();} 
-
-// duplet rotations, plane to plane:  XY --> YZ --> ZX -> XY ...  preserves RH rule
-module XY2YZ() { RZX() RXY() children(); }      module ZX2XY() { XY2YZ() children();}   // equivqlents
-module YZ2ZX() { RXY() RYZ() children(); }      module ZX2YZ() { YZ2ZX() children();}   // equivqlents
-module XY2ZX() { RXZ() RZY() children(); }      module YZ2XY() { XY2ZX() children();}   // equivqlents
 
                                         /*^^^^^^^^^^^^^^^^^*\
 =======================================/ utilities & aliases ==============================================*/
@@ -62,7 +45,7 @@ function circpt(w,r=1) = P2R(r,w);                  // returns point on circle a
 function arcpts(N=$fn, W=360, w=0, r=1, R=[]) =     // returns [[r,w_0]..[r,w_N]], covering a 'W' degree arc
     (w < W) ? arcpts(N, W, w+W/N, r, concat(R, [P2R([r,w])])) : R ;
  
-module array(M=1, N=1, axes=U*[$x,$z])    // arrange child objects in an MxN ARRAY
+module array(M=1, N=1, axes=gf_U*[$x,$z])    // arrange child objects in an MxN ARRAY
 { for (i=[-(M-1)/2:(M-1)/2]) for (j=[-(N-1)/2:(N-1)/2]) translate(((i)*axes[0] +(j)*axes[1])) children(); }
 
 module move(amt) {translate(amt+[eps,eps,eps]) children();}
@@ -94,7 +77,12 @@ module imprint(P=0) {difference() {children(1); move([0,0,P-eps]) children(0); }
 
 /*============================================/ TODO List \===================================================
 
+    > there are three ways to represent an interval: [start, end], [start, width] and [center, +/-delta]
+        >? how to transform among them?
+
+
     >!: make an 'append' operator to entrain a series of point lists, lik'union' does for objects
+            'union' name can be reused, as it will be a function, not an operator.
 
     >!: // >: extend point list operations to 3D?
 
